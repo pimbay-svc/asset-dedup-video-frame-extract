@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main, contrib]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['24']
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install ffmpeg (ffmpeg + ffprobe, needed by real integration tests)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lint
+        run: npm run js:lint
+
+      - name: Format check
+        run: npm run js:format
+
+      - name: Typecheck (src + test)
+        run: npm run js:typecheck
+
+      - name: Build
+        run: npm run js:build
+
+      - name: Unit + integration tests (with coverage threshold)
+        run: npm run test:coverage
+
+      - name: Mutation testing
+        run: npm run test:mutation
+
+  docker-build:
+    name: Docker build (validation only, no push)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          tags: pimbay/asset-dedup-video-frame-extract:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
