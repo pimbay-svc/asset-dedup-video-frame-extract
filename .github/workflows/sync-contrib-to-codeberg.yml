@@ -15,4 +15,5 @@ jobs:
       - name: Push contrib to Codeberg
         run: |
           git remote add codeberg https://oauth2:${{ secrets.CODEBERG_TOKEN }}@codeberg.org/pimbay-svc/asset-dedup-video-frame-extract.git
-          git push codeberg contrib:contrib --force-with-lease
+          git fetch codeberg contrib:refs/remotes/codeberg/contrib || true
+          git push codeberg contrib:contrib --force
