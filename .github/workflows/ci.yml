@@ -3,6 +3,8 @@ name: CI
 on:
   pull_request:
     branches: [contrib]
+  push:
+    branches: [contrib]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -26,7 +28,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Install ffmpeg (ffmpeg + ffprobe, needed by real integration tests)
+      - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
 
       - name: Audit runtime dependencies
@@ -38,13 +40,13 @@ jobs:
       - name: Format check
         run: npm run js:format
 
-      - name: Typecheck (src + test)
+      - name: Typecheck
         run: npm run js:typecheck
 
       - name: Build
         run: npm run js:build
 
-      - name: Unit + integration tests (with coverage threshold)
+      - name: Unit + integration tests
         run: npm run test:coverage
 
       - name: Mutation testing
@@ -66,3 +68,18 @@ jobs:
           tags: pimbay/asset-dedup-video-frame-extract:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  sync:
+    if: github.event_name == 'push'
+    needs: [node, docker-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push contrib to Codeberg
+        run: |
+          git remote add codeberg https://oauth2:${{ secrets.CODEBERG_TOKEN }}@codeberg.org/pimbay-svc/asset-dedup-video-frame-extract.git
+          git fetch codeberg contrib:refs/remotes/codeberg/contrib || true
+          git push codeberg contrib:contrib --force
