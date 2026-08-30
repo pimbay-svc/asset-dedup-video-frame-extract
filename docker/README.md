@@ -25,6 +25,8 @@ services:
       - video-frame-extract-sockets:/sockets
       - asset-dedup-shared:/shared
     environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
       SOCKET_PATH: /sockets/video-frame-extract.sock
       SHARED_VOLUME_DIR: /shared
     restart: unless-stopped
@@ -46,6 +48,8 @@ No `depends_on`/health-gating is required on `core`'s side — this service crea
 | `FFMPEG_TIMEOUT_MS`     | No       | `20000`                                    | Hard timeout (ms) for a single `ffmpeg`/`ffprobe` invocation.                                            |
 | `TTL_SWEEP_INTERVAL_MS` | No       | `300000`                                   | How often the background sweep of `OUTPUT_DIR` runs.                                                     |
 | `TTL_RETENTION_MS`      | No       | `3600000`                                  | Age past which the TTL sweep deletes a leftover output file — a backstop if `core` crashes mid-pipeline. |
+| `NODE_ENV`              | No       | `production`                               | `development` \| `production` \| `test`. Controls log pretty-printing.                                   |
+| `LOG_LEVEL`             | No       | `info`                                     | pino level: `trace`\|`debug`\|`info`\|`warn`\|`error`\|`fatal`\|`silent`.                                |
 
 `FFMPEG_BIN`/`FFPROBE_BIN` already point at the `ffmpeg`/`ffprobe` binaries baked into the image; only set them if you're mounting in custom binaries.
 
