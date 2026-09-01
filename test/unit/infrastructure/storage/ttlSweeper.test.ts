@@ -6,11 +6,9 @@ import { TtlSweeper } from '../../../../src/infrastructure/storage/ttlSweeper.js
 import { makeEnv } from '../../../helpers/env.js';
 import { fakeLogger } from '../../../helpers/logger.js';
 
-// Real timers throughout: sweepOnce does real fs I/O and is fired via an
-// un-awaited `void this.sweepOnce()` inside the interval callback, so fake
-// timers would only advance the JS clock, not wait for that real I/O to
-// settle. A short real interval plus a short real wait is simpler and
-// deterministic here.
+// Real timers throughout: sweepOnce does real fs I/O via an un-awaited `void this.sweepOnce()`
+// inside the interval callback, so fake timers would advance the JS clock without waiting for
+// that I/O. A short real interval plus a short real wait is simpler here.
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -75,9 +73,8 @@ describe('TtlSweeper', () => {
   });
 
   it('logs a warning and continues if a single entry fails to process (e.g. unlink on a directory)', async () => {
-    // A stale sub-directory: stat() succeeds (so it's judged old enough to
-    // remove), but unlink() on a directory fails — exercising the per-entry
-    // catch without affecting any other entry in the same sweep.
+    // A stale sub-directory: stat() succeeds (judged old enough to remove), but unlink() on a
+    // directory fails — exercising the per-entry catch without affecting other entries.
     const staleDir = path.join(outputDir, 'stale-subdir');
     await mkdir(staleDir);
     const oldTime = new Date(Date.now() - 2 * 60 * 60 * 1000);
@@ -127,10 +124,9 @@ describe('TtlSweeper', () => {
     const boundaryFile = path.join(outputDir, 'boundary.png');
     await writeFile(boundaryFile, 'x');
 
-    // Pin Date.now() to a fixed value for the whole sweep, independent of real wall-clock
-    // jitter (real setInterval/fs I/O still runs normally — only "now" is controlled), so the
-    // file's age as seen by sweepOnce is *exactly* retentionMs, the precise boundary between
-    // "kept" (>) and "removed" (>=).
+    // Pin Date.now() for the whole sweep, independent of real wall-clock jitter (setInterval/fs
+    // I/O still run normally — only "now" is controlled), so the file's age as seen by
+    // sweepOnce is *exactly* retentionMs — the boundary between "kept" (>) and "removed" (>=).
     const fixedNow = Date.now() + 10_000;
     const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(fixedNow);
     const mtime = new Date(fixedNow - retentionMs);

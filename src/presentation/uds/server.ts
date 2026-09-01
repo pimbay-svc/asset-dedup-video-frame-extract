@@ -45,10 +45,9 @@ async function removeStaleSocket(socketPath: string): Promise<void> {
 }
 
 /**
- * Accepts a single persistent client connection from `core` (connects once, stays open, reconnects on drop —
- * no per-request accept/close). A connection only becomes "active" once it sends its first valid frame, not
- * merely on accept, so the Docker healthcheck's silent connect-and-close probe can't race a live `core`
- * connection: a second connection is only rejected once *it* tries to send data while another is already active.
+ * Accepts a single persistent connection from `core` (connect once, stay open, reconnect on drop).
+ * A connection becomes "active" only on its first valid frame, not on accept — so the healthcheck's
+ * silent connect-and-close probe can never be mistaken for `core` and block a real connection.
  */
 export async function buildUdsServer(cradle: Cradle): Promise<UdsServerHandle> {
   const logger: pino.Logger = cradle.logger;
@@ -69,9 +68,8 @@ export async function buildUdsServer(cradle: Cradle): Promise<UdsServerHandle> {
 
       const decoder = decoders.get(socket);
 
-      /* v8 ignore next 3 -- decoders.set(socket, ...) runs synchronously as the first line of
-         the 'connection' handler, before any 'data' event on this socket can fire; this guard
-         exists only for defensive type-safety against the WeakMap lookup, never in practice. */
+      /* v8 ignore next 3 -- decoders.set() runs before any 'data' event can fire on this socket;
+         this guard is defensive type-safety for the WeakMap lookup only, never hit in practice. */
       if (decoder === undefined) {
         return;
       }
@@ -86,10 +84,8 @@ export async function buildUdsServer(cradle: Cradle): Promise<UdsServerHandle> {
         return;
       }
 
-      // Stryker disable next-line ConditionalExpression: the guard above this handler ensures
-      // this line only runs when activeSocket is null or === socket; in the latter case the
-      // right operand being forced `true` just reassigns activeSocket to the value it already
-      // holds — a no-op, unobservable from outside.
+      // Stryker disable next-line ConditionalExpression: activeSocket is here null or === socket,
+      // so forcing the right operand true just reassigns it to its current value — unobservable.
       if (messages.length > 0 && activeSocket === null) {
         activeSocket = socket;
       }
@@ -100,9 +96,8 @@ export async function buildUdsServer(cradle: Cradle): Promise<UdsServerHandle> {
     });
 
     socket.on('close', () => {
-      // Stryker disable next-line CallExpression: `decoders` is a WeakMap and `socket` objects
-      // are never reused across connections — skipping this delete has no externally observable
-      // effect, only a marginally later GC of the entry.
+      // Stryker disable next-line CallExpression: sockets are never reused, so skipping this
+      // WeakMap delete has no observable effect beyond a slightly later GC of the entry.
       decoders.delete(socket);
       if (activeSocket === socket) {
         activeSocket = null;
