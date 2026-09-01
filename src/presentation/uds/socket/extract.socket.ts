@@ -40,10 +40,8 @@ export async function handleExtract(message: unknown, cradle: Cradle): Promise<E
   const { config, inputs } = parsed.data;
 
   if (!VALID_SAMPLING_STRATEGIES.includes(config.sampling_strategy)) {
-    // Config is malformed at the request level, not per-item — report every
-    // input as an internal_error rather than silently defaulting, since
-    // silently substituting a strategy would process the batch differently
-    // than core asked for.
+    // Malformed at the request level, not per-item — report every input as internal_error rather than silently
+    // substituting a strategy, which would process the batch differently than core asked for.
     const errorEntry = {
       error: {
         code: 'internal_error',

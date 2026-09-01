@@ -13,9 +13,8 @@ export interface SceneChangeCandidate {
 }
 
 /**
- * Evenly spaced timestamps across the video's duration. For `frameCount`
- * frames, uses the midpoint of `frameCount` equal buckets — e.g. for
- * frameCount=5: 10%, 30%, 50%, 70%, 90% of duration.
+ * Evenly spaced timestamps: midpoint of `frameCount` equal buckets across the duration
+ * (e.g. frameCount=5 → 10%, 30%, 50%, 70%, 90%).
  */
 export function evenTimestamps(frameCount: number, durationSeconds: number): number[] {
   const timestamps: number[] = [];
@@ -28,12 +27,10 @@ export function evenTimestamps(frameCount: number, durationSeconds: number): num
 }
 
 /**
- * Picks up to `frameCount` timestamps from scene-change candidates, ranked
- * by score (highest = most likely a real cut) rather than by position. If
- * there are fewer candidates than requested, returns all of them (the
- * caller is expected to fill the remainder via `fillRemainderWithEven`).
- * Output is re-sorted chronologically — score only decides *which*
- * timestamps are kept, not their order.
+ * Picks up to `frameCount` timestamps from scene-change candidates, ranked by score
+ * (highest = most likely a real cut), not position — caller fills any remainder via
+ * `fillRemainderWithEven`. Result is re-sorted chronologically; score only decides
+ * *which* timestamps are kept.
  */
 export function selectSceneChangeTimestamps(candidates: SceneChangeCandidate[], frameCount: number): number[] {
   const topByScore = [...candidates].sort((a, b) => b.score - a.score).slice(0, frameCount);
@@ -44,10 +41,9 @@ export function selectSceneChangeTimestamps(candidates: SceneChangeCandidate[], 
 const DEDUP_EPSILON_SECONDS = 0.01;
 
 /**
- * Fills the gap between an existing (scene-change-derived) timestamp list
- * and `targetCount` by adding evenly spaced timestamps, skipping any that
- * would land within DEDUP_EPSILON_SECONDS of an existing one. Used when a
- * video has fewer detected scene changes than `frame_count`.
+ * Tops up `existing` to `targetCount` with evenly spaced timestamps, skipping any within
+ * DEDUP_EPSILON_SECONDS of one already present. Used when scene-change detection finds
+ * fewer changes than `frame_count`.
  */
 export function fillRemainderWithEven(existing: number[], targetCount: number, durationSeconds: number): number[] {
   const result = [...existing];

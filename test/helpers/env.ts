@@ -1,7 +1,7 @@
 import { loadEnv, type Env } from '../../src/infrastructure/env/env.js';
 
-// Allow the local dev machine's PATH-resolved binaries to be picked up when running tests
-// outside of Docker, same as ffmpeg/ffprobe would resolve in production.
+// Picks up PATH-resolved binaries on the local dev machine when tests run outside Docker,
+// same as ffmpeg/ffprobe would resolve in production.
 const FFMPEG_BIN = process.env.FFMPEG_BIN ?? 'ffmpeg';
 const FFPROBE_BIN = process.env.FFPROBE_BIN ?? 'ffprobe';
 

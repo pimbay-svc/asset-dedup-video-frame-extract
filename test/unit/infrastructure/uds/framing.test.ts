@@ -72,10 +72,9 @@ describe('FrameDecoder', () => {
 
   it('throws when a header exactly fills the buffer and claims a zero-length payload', () => {
     const decoder = new FrameDecoder();
-    // Buffer length === LENGTH_PREFIX_BYTES exactly (4), header all-zero -> claims a payload of
-    // 0 bytes. A zero-length payload can never be valid JSON, so this must surface as a thrown
-    // error immediately rather than being silently treated as "still waiting for more bytes" —
-    // the two only differ observably at this exact boundary (buffer.length === header size).
+    // buffer.length === LENGTH_PREFIX_BYTES (4), header all-zero -> claims a 0-byte payload.
+    // That can never be valid JSON, so it must throw immediately rather than being treated as
+    // "still waiting for more bytes" — the two cases differ only at this exact boundary.
     const zeroLengthHeader = Buffer.alloc(4);
 
     expect(() => decoder.push(zeroLengthHeader)).toThrow();

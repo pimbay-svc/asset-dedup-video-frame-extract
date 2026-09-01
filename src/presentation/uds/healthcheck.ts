@@ -14,12 +14,9 @@ import { UdsServerMessage } from './messages.js';
 const TIMEOUT_MS = 3000;
 
 /**
- * Run directly as the Docker HEALTHCHECK command. Success means the socket
- * file exists and this process accepts a connection on it — nothing more.
- * Deliberately does not send any bytes: sending a real `op` here would mean
- * inventing a protocol extension `core` doesn't know about, purely to serve
- * an operational check. See server.ts for why a silent, empty connection
- * like this one never gets treated as "the" active connection.
+ * Run as the Docker HEALTHCHECK command. Success means only that the socket exists and accepts a
+ * connection — no bytes are sent, since any `op` here would be a protocol extension `core` doesn't
+ * know. See server.ts for why this silent connection never becomes "the" active one.
  */
 function main(): void {
   let socketPath: string;

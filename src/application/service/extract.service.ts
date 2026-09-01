@@ -37,9 +37,8 @@ export class VideoExtractService {
   ) {}
 
   /**
-   * Extracts frames for every item in `inputs`. Per spec, a failure on one item never prevents the rest of the batch
-   * from being attempted and reported — each item is handled independently and its result (success or error)
-   * is reported under its own key, mirroring `inputs` exactly.
+   * Extracts frames for every item in `inputs` independently — per spec, one item's failure never blocks the rest
+   * of the batch. Each result (success or error) is reported under its own key, mirroring `inputs`.
    */
   async extractBatch(
     config: ExtractFramesConfig,

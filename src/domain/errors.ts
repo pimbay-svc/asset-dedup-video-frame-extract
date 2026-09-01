@@ -14,9 +14,8 @@ export abstract class AssetDedupVideoExtensionError extends Error {
 }
 
 /**
- * The video file itself is unreadable/malformed (no valid video stream,
- * ffmpeg/ffprobe rejects the container, a frame can't be rendered). Maps to
- * the spec's `corrupt_input` per-item error code.
+ * Video file is unreadable/malformed (no valid stream, container rejected, frame can't render).
+ * Maps to the spec's `corrupt_input` per-item error code.
  */
 export class CorruptInputError extends AssetDedupVideoExtensionError {
   private constructor(message: string) {
@@ -37,9 +36,8 @@ export class CorruptInputError extends AssetDedupVideoExtensionError {
 }
 
 /**
- * ffmpeg/ffprobe failed to start, timed out, or crashed for reasons
- * unrelated to the input file's own validity. Maps to the spec's
- * `internal_error` per-item error code.
+ * ffmpeg/ffprobe failed to start, timed out, or crashed for reasons unrelated to the input's own
+ * validity. Maps to the spec's `internal_error` per-item error code.
  */
 export class InternalExtractionError extends AssetDedupVideoExtensionError {
   private constructor(message: string) {
@@ -56,12 +54,10 @@ export class InternalExtractionError extends AssetDedupVideoExtensionError {
 }
 
 /**
- * The video's duration exceeds MAX_VIDEO_DURATION_S. Not one of the spec's
- * three standard codes (`unsupported_input`/`corrupt_input`/`internal_error`)
- * — those are documented as codes to use "where applicable", not an
- * exclusive list, and this is a policy rejection on an otherwise-valid file,
- * which is a meaningfully different situation. Reported as its own
- * `video_too_long` code; documented as an extension-specific addition.
+ * Duration exceeds MAX_VIDEO_DURATION_S. Not one of the spec's three standard codes
+ * (`unsupported_input`/`corrupt_input`/`internal_error`, documented as usable "where applicable",
+ * not exclusive) — this is a policy rejection on an otherwise-valid file, reported as its own
+ * `video_too_long` code (an extension-specific addition).
  */
 export class VideoTooLongError extends AssetDedupVideoExtensionError {
   private constructor(message: string) {

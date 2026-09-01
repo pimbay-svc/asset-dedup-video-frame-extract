@@ -68,10 +68,9 @@ describe('UDS server', () => {
   });
 
   it('removes a stale socket file left by an unclean shutdown and listens successfully', async () => {
-    // A plain file at the path (not a live listener) is exactly what a Unix domain socket file
-    // looks like after the process that owned it was SIGKILLed rather than shutting down
-    // cleanly — connecting to it fails, so it must be treated as stale and removed, not left to
-    // make this listen() fail with a false EADDRINUSE.
+    // A plain file at the path is what a socket looks like after its owning process was
+    // SIGKILLed instead of shutting down cleanly — connecting to it fails, so it must be
+    // treated as stale and removed rather than causing a false EADDRINUSE on listen().
     const stalePath = path.join(dir, 'stale.sock');
     await writeFile(stalePath, '');
 
@@ -86,10 +85,8 @@ describe('UDS server', () => {
   });
 
   it('rejects if the stale-socket cleanup itself fails for a non-ENOENT reason', async () => {
-    // A directory at the socket path isn't a live listener either (connecting to it still
-    // fails, so it's treated as "stale" and unlink is attempted) — but unlink() on a directory
-    // fails with EISDIR, not ENOENT, and that must propagate rather than being silently
-    // swallowed the way a genuinely-missing file (ENOENT) is.
+    // A directory at the path is also treated as stale (connecting fails), but unlink() on directory fails with EISDIR,
+    // not ENOENT — that must propagate, not be swallowed the way a genuinely-missing file is.
     const dirAtSocketPath = path.join(dir, 'blocking-dir.sock');
     await mkdir(dirAtSocketPath);
 
@@ -103,15 +100,14 @@ describe('UDS server', () => {
   });
 
   it('removes its own startup error listener once listening succeeds', () => {
-    // If server.ts's removeListener('error', reject) call didn't fire (or fired for the wrong
-    // event name), this stray listener from startup would remain attached indefinitely.
+    // If server.ts's removeListener('error', reject) didn't fire (or targeted the wrong event),
+    // this stray startup listener would remain attached indefinitely.
     expect(handle.server.listenerCount('error')).toBe(0);
   });
 
   it('rejects if the socket path is already bound by another listener', async () => {
-    // A second server on the exact same UDS path triggers a real EADDRINUSE 'error' event
-    // during listen() — proving server.once('error', reject) is wired to the real event name,
-    // not a mutated one that would never fire and leave this hanging forever.
+    // A second server on the same UDS path triggers a real EADDRINUSE 'error' event during listen(), proving
+    // server.once('error', reject) is wired to the real event name and not a mutated one that would hang forever.
     const secondCradle = {
       env: { SOCKET_PATH: socketPath },
       logger: fakeLogger(),
@@ -175,8 +171,8 @@ describe('UDS server', () => {
 
   it('an incomplete frame on a second connection does not claim the active slot', async () => {
     const partial = await connectFrames(socketPath);
-    // Only 2 of the 4 length-prefix header bytes -> decoder.push() returns zero messages for
-    // this connection. It must NOT become "active" off the back of this alone.
+    // Only 2 of 4 length-prefix header bytes -> decoder.push() returns zero messages, so this
+    // connection must NOT become "active" off the back of it alone.
     partial.socket.write(Buffer.alloc(2));
 
     // give the (synchronous) dispatch a tick to run before the real connection attempts below
@@ -209,8 +205,8 @@ describe('UDS server', () => {
     );
     await rejectedClosed; // server destroyed it immediately — `active` still holds the slot
 
-    // A third connection must still be rejected too — proves `rejected`'s own close handler
-    // didn't wrongly clear the active slot, which would let this one slip through instead.
+    // A third connection must still be rejected — proves `rejected`'s own close handler didn't
+    // wrongly clear the active slot and let this one slip through.
     const third = await connectFrames(socketPath);
     const thirdClosed = waitForClose(third.socket);
     third.socket.write(
@@ -234,8 +230,8 @@ describe('UDS server', () => {
     first.socket.destroy();
     await waitForClose(first.socket);
 
-    // With the previous active connection gone, a new one must be accepted in its place — if
-    // the active slot never clears, this would be rejected forever instead.
+    // With the previous active connection gone, a new one must take its place — if the active
+    // slot never cleared, this would be rejected forever.
     const second = await connectFrames(socketPath);
     const secondResponse = nextFrame(second.socket, second.decoder);
     second.socket.write(
@@ -305,8 +301,8 @@ describe('UDS server', () => {
   it('survives a bare `null` JSON frame instead of crashing on an unsafe `.op` read', async () => {
     const { socket, decoder } = await connectFrames(socketPath);
 
-    // `null` is valid JSON and decodes successfully, so this never hits the frame-decode-failure
-    // path — it's a value that isn't even an object, which used to throw on `message.op`.
+    // `null` is valid JSON and decodes fine, so this never hits frame-decode-failure — it's a
+    // value that isn't even an object, which used to throw on `message.op`.
     socket.write(encodeFrame(null));
     await new Promise((resolve) => setTimeout(resolve, 20));
 

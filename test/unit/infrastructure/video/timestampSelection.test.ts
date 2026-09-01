@@ -77,10 +77,9 @@ describe('fillRemainderWithEven', () => {
   });
 
   it('treats the dedup epsilon as a strict "closer than" threshold, not "at most as close"', () => {
-    // durationSeconds=0 makes every generated candidate exactly 0 — chosen because
-    // |0.01 - 0| === 0.01 exactly in IEEE-754 double (no rounding drift from decimal
-    // arithmetic), landing precisely on DEDUP_EPSILON_SECONDS. At exactly the epsilon
-    // distance the candidate must still count as new, not as a duplicate.
+    // durationSeconds=0 makes every candidate exactly 0 — chosen because |0.01 - 0| === 0.01 exactly in IEEE-754
+    // double (no decimal rounding drift), landing precisely on DEDUP_EPSILON_SECONDS. At exactly the epsilon distance
+    // the candidate must still count as new, not as a duplicate.
     const result = fillRemainderWithEven([0.01], 2, 0);
     expect(result).toEqual([0, 0.01]);
   });
@@ -92,27 +91,24 @@ describe('fillRemainderWithEven', () => {
 
   it('re-sorts ascending and trims to targetCount even when existing arrives out of order and larger than every generated candidate', () => {
     // existing=[90] sorts *after* the generated 25 both by value and by the final sort step —
-    // insertion order here is [90, 25], the opposite of the correct ascending output, so this
-    // catches both a dropped/broken final .sort() and a loop that keeps running (and pushing
-    // more candidates) past the point where targetCount is already met.
+    // insertion order is [90, 25], the opposite of correct ascending output, so this catches
+    // both a dropped/broken final .sort() and a loop that keeps pushing past targetCount.
     const result = fillRemainderWithEven([90], 2, 100);
     expect(result).toEqual([25, 90]);
   });
 
   it('stops via the maxAttempts safety valve instead of looping forever when every candidate collides (e.g. durationSeconds=0)', () => {
-    // durationSeconds=0 makes every generated candidate exactly 0, so every attempt after the
-    // first is judged a duplicate of the first — result.length can never reach targetCount, so
-    // only the maxAttempts half of the while condition can ever stop this loop.
+    // durationSeconds=0 makes every candidate exactly 0, so every attempt after the first is judged a duplicate
+    // — result.length can never reach targetCount, only the maxAttempts half of the while condition can stop this loop.
     const result = fillRemainderWithEven([], 3, 0);
     expect(result).toEqual([0]);
   });
 
   it('stops at exactly maxAttempts, not one attempt later', () => {
-    // Tuned so that the drift between the first accepted candidate and each later one stays
-    // under DEDUP_EPSILON_SECONDS (0.01s) for every attempt up to and including the last one
-    // the real `attempt < maxAttempts` allows, but *would* just clear epsilon on the one extra
-    // attempt an off-by-one `<=` would additionally allow — so only the off-by-one variant
-    // ends up with a second, genuinely distinct timestamp.
+    // Tuned so the drift between the first accepted candidate and each later one stays under
+    // DEDUP_EPSILON_SECONDS (0.01s) for every attempt up to and including the last one the real `attempt < maxAttempts`
+    // allows, but *would* clear epsilon on the one extra attempt an off-by-one `<=` would additionally allow — so
+    // only that variant yields a second, genuinely distinct timestamp.
     const result = fillRemainderWithEven([], 2, 0.00252);
     expect(result).toHaveLength(1);
   });
