@@ -27,10 +27,8 @@ interface CommandResult {
 }
 
 /**
- * Reads directly from a path already on the shared volume (no more
- * mkdtemp+writeFile from an in-memory buffer — the video never travels over
- * the socket, only its path does) and writes each extracted frame straight
- * to a file on that same volume.
+ * Reads the video directly from its path on the shared volume (never travels over the
+ * socket — only the path does) and writes each extracted frame straight back to disk.
  */
 export class VideoProvider implements VideoExtractor {
   constructor(private readonly env: Env) {}
@@ -68,8 +66,7 @@ export class VideoProvider implements VideoExtractor {
     const candidates = await this.probeSceneChangeTimestamps(videoPath);
 
     if (candidates.length === 0) {
-      // No scene changes could be detected (static video, or probing failed) — fall back to even sampling rather
-      // than failing the whole request.
+      // No scene changes detected (static video, or probing failed) — fall back to even sampling.
       return evenTimestamps(options.frameCount, durationSeconds);
     }
 
@@ -104,9 +101,8 @@ export class VideoProvider implements VideoExtractor {
   }
 
   /**
-   * Real scene-change detection via ffmpeg's `scene` score filter — not I-frame/keyframe probing, which answers
-   * a codec-compression question rather than "did the visual content change". `select='gt(scene\,0)'` keeps
-   * every nonzero-score frame so ranking happens here, not via a hard pre-filter threshold.
+   * Scene-change detection via ffmpeg's `scene` score filter, not I-frame probing (a codec question, not a
+   * visual-content one). Keeps every nonzero-score frame so ranking happens here, not via a pre-filter threshold.
    */
   private async probeSceneChangeTimestamps(videoPath: string): Promise<SceneChangeCandidate[]> {
     let result: CommandResult;
@@ -124,17 +120,15 @@ export class VideoProvider implements VideoExtractor {
         'csv=p=0',
       ]);
     } catch {
-      // Scene-change probing is a best-effort optimization for the "scene-change-detection" sampling strategy — if it
-      // fails outright, fall back to even sampling in the caller rather than failing the whole request.
+      // Best-effort optimization — on failure, the caller falls back to even sampling.
       return [];
     }
 
     const candidates: SceneChangeCandidate[] = [];
     for (const line of result.stdout.toString('utf-8').split('\n')) {
       const [timestampRaw, scoreRaw] = line.trim().split(',');
-      /* v8 ignore next -- split(',') on any string (including '') always returns at least one
-         element, so timestampRaw is never actually undefined; the `?? ''` exists only to satisfy
-         noUncheckedIndexedAccess. */
+      /* v8 ignore next -- split(',') always returns ≥1 element, so timestampRaw is never
+         undefined; `?? ''` exists only to satisfy noUncheckedIndexedAccess. */
       const timestampSeconds = Number.parseFloat(timestampRaw ?? '');
       const score = Number.parseFloat(scoreRaw ?? '');
 
@@ -177,9 +171,8 @@ export class VideoProvider implements VideoExtractor {
       let settled = false;
 
       const timer = setTimeout(() => {
-        /* v8 ignore next 3 -- a setTimeout callback only ever fires once; `settled` cannot
-           already be true the first (and only) time this runs, so this guard exists only for
-           defensive symmetry with the 'error'/'close' handlers below. */
+        /* v8 ignore next 3 -- a setTimeout callback fires once, so `settled` can't already be
+           true here; kept only for symmetry with the 'error'/'close' handlers below. */
         if (settled) {
           return;
         }
@@ -192,9 +185,8 @@ export class VideoProvider implements VideoExtractor {
       child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
 
       child.on('error', (err) => {
-        /* v8 ignore next 3 -- reachable only if 'error' fires after the timeout already settled
-           this promise, which would require a hung process to still emit a spawn-level error
-           afterwards; not something a well-behaved or even misbehaving ffmpeg/ffprobe does. */
+        /* v8 ignore next 3 -- reachable only if 'error' fires after the timeout already settled;
+           not something ffmpeg/ffprobe does even when misbehaving. */
         if (settled) {
           return;
         }
@@ -217,9 +209,9 @@ export class VideoProvider implements VideoExtractor {
 }
 
 /**
- * Best-effort escaping for ffmpeg's `movie` filter path argument, where `:` and `,` are option separators.
- * Shared-volume paths built from our own uniqueId convention won't contain these, but source video paths handed to
- * us by `core` could in principle — this covers the common case, not every theoretically possible path.
+ * Best-effort escaping for ffmpeg's `movie` filter path (`:` and `,` are option separators). Our own
+ * uniqueId-based paths won't contain these, but `core`-supplied source paths could — covers the
+ * common case, not every possible path.
  */
 function escapeLavfiPath(inputPath: string): string {
   return inputPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/:/g, '\\:');
