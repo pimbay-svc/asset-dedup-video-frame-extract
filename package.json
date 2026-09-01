@@ -1,7 +1,7 @@
 {
   "name": "@pimbay/asset-dedup-video-frame-extract",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Video extension for asset-dedup-core — extracts frames from videos over a Unix domain socket.",
   "license": "Unlicense",
   "author": {
