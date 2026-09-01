@@ -22,5 +22,35 @@ jobs:
         run: |
           git fetch origin main contrib
           git checkout main
-          git merge --no-ff origin/contrib -m "chore: merge contrib into main [skip ci]"
+          git merge --no-ff origin/contrib -m "chore: merge contrib into main"
           git push origin main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Tag release if package.json carries an untagged version
+        run: |
+          # node -p "require(...).version", not a sed/grep regex on the raw text: package.json
+          # also has a nested "scripts.version" key (our own release lifecycle hook) with the same
+          # key name, and a regex has no notion of JSON nesting to tell the two apart.
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ -z "$VERSION" ]; then
+            echo "could not read \"version\" from package.json — skipping tag" >&2
+            exit 0
+          fi
+          TAG="v${VERSION}"
+
+          if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
+            echo "${TAG} already exists on Codeberg — nothing to do"
+            exit 0
+          fi
+
+          git tag -a "${TAG}" -m "${TAG}"
+          git push origin "${TAG}"
+
+      - name: Sync main and tags to GitHub
+        run: |
+          git remote add github "https://x-access-token:${{ secrets.GH_PUSH_TOKEN }}@github.com/pimbay-svc/asset-dedup-video-frame-extract.git"
+          git push github main
+          git push github --tags

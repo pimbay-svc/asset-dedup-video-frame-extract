@@ -15,7 +15,7 @@
     "url": "https://codeberg.org/pimbay-svc/asset-dedup-video-frame-extract"
   },
   "bugs": {
-    "url": "https://codeberg.org/pimbay-svc/asset-dedup-video-frame-extract/issues"
+    "url": "https://github.com/pimbay-svc/asset-dedup-video-frame-extract/issues"
   },
   "type": "module",
   "engines": {
