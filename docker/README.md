@@ -6,8 +6,8 @@ Frame-extraction extension for `asset-dedup-core`. Given one or more video paths
 
 ```bash
 docker run --rm \
-  -v video-frame-extract-sockets:/sockets \
-  -v asset-dedup-shared:/shared \
+  -v sockets:/sockets \
+  -v shared-assets:/shared \
   -e SOCKET_PATH=/sockets/video-frame-extract.sock \
   -e SHARED_VOLUME_DIR=/shared \
   pimbay/asset-dedup-video-frame-extract:latest
@@ -21,17 +21,19 @@ Both volumes must also be mounted into the `asset-dedup-core` container so it ca
 services:
   video-frame-extract:
     image: pimbay/asset-dedup-video-frame-extract:latest
-    volumes:
-      - video-frame-extract-sockets:/sockets
-      - asset-dedup-shared:/shared
     environment:
       NODE_ENV: production
       LOG_LEVEL: info
       SOCKET_PATH: /sockets/video-frame-extract.sock
       SHARED_VOLUME_DIR: /shared
+    volumes:
+      - sockets:/sockets
+      - shared-assets:/shared
     restart: unless-stopped
 
-  # asset-dedup-core must mount the same two volumes to reach this service.
+volumes:
+  sockets:
+  shared-assets:
 ```
 
 No `depends_on`/health-gating is required on `core`'s side — this service creates the socket directory and starts listening on boot, and `core` simply retries the connection until the socket exists. No ports are published; there's nothing to expose besides the socket file on the shared volume.
