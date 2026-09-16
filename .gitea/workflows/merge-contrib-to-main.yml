@@ -29,14 +29,19 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Tag release if package.json carries an untagged version
+      - name: Tag release if version manifest carries an untagged version
         run: |
-          # node -p "require(...).version", not a sed/grep regex on the raw text: package.json
-          # also has a nested "scripts.version" key (our own release lifecycle hook) with the same
-          # key name, and a regex has no notion of JSON nesting to tell the two apart.
-          VERSION="$(node -p "require('./package.json').version")"
-          if [ -z "$VERSION" ]; then
-            echo "could not read \"version\" from package.json — skipping tag" >&2
+          if [ -f package.json ]; then
+            VERSION="$(node -p "require('./package.json').version")"
+          elif [ -f VERSION ]; then
+            VERSION="$(cat VERSION)"
+          else
+            echo "no version manifest found (package.json or VERSION) — skipping tag" >&2
+            exit 0
+          fi
+
+          if [ -z "$VERSION" ] || [ "$VERSION" = "0.0.0" ]; then
+            echo "no releasable version (missing, or 0.0.0 placeholder) — skipping tag" >&2
             exit 0
           fi
           TAG="v${VERSION}"
