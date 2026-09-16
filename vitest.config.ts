@@ -16,7 +16,7 @@ export default defineConfig({
       include: ['src/**'],
       provider: 'v8',
       reporter: ['text', 'lcov'],
-      reportsDirectory: 'var/coverage',
+      reportsDirectory: 'var/reports/coverage',
       thresholds: {
         statements: 100,
         branches: 100,
