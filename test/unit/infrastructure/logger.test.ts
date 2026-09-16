@@ -10,7 +10,7 @@ describe('logger', () => {
       {
         name: 'returns a file transport in test',
         nodeEnv: NodeEnv.TEST,
-        expected: { target: 'pino/file', options: { destination: 'var/test/test.log', mkdir: true } },
+        expected: { target: 'pino/file', options: { destination: 'var/logs/test.log', mkdir: true } },
       },
       {
         name: 'returns pino-pretty for development',

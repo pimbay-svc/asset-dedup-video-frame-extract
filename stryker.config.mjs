@@ -9,8 +9,8 @@ const config = {
   mutate: [
     'src/**/*.ts',
     '!src/server.ts',
-    '!src/presentation/uds/healthcheck.ts',
     '!src/infrastructure/video/videoProvider.ts',
+    '!src/presentation/uds/healthcheck.ts',
   ],
 
   checkers: ['typescript'],
@@ -25,15 +25,15 @@ const config = {
     break: 100,
   },
 
-  reporters: ['html', 'clear-text', 'progress'],
+  reporters: ['html', 'json', 'clear-text', 'progress'],
   htmlReporter: {
-    fileName: 'var/tests/mutation/index.html',
+    fileName: 'var/reports/mutation/index.html',
   },
   jsonReporter: {
-    fileName: 'var/tests/mutation/report.json',
+    fileName: 'var/reports/mutation/report.json',
   },
 
-  tempDirName: 'var/tests/.stryker-tmp',
+  tempDirName: 'var/tmp/stryker',
 };
 
 export default config;

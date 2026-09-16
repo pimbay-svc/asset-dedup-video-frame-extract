@@ -13,7 +13,7 @@ export function resolveTransport(env: Env): { target: string; options?: Record<s
     return undefined;
   }
   if (env.NODE_ENV === NodeEnv.TEST) {
-    return { target: 'pino/file', options: { destination: 'var/test/test.log', mkdir: true } };
+    return { target: 'pino/file', options: { destination: 'var/logs/test.log', mkdir: true } };
   }
 
   return { target: 'pino-pretty' };

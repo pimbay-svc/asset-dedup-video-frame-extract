@@ -11,9 +11,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  mutation-changes:
+    name: Detect src changes for mutation testing
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.filter.outputs.should-run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            should-run:
+              - 'src/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'stryker.config.*'
+
   node:
     name: Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
+    needs: [mutation-changes]
     strategy:
       matrix:
         node-version: ['24']
@@ -50,6 +68,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Mutation testing
+        if: github.event_name == 'push' || needs.mutation-changes.outputs.should-run == 'true'
         run: npm run test:mutation
 
   docker-build:
@@ -82,4 +101,4 @@ jobs:
         run: |
           git remote add codeberg https://oauth2:${{ secrets.CODEBERG_TOKEN }}@codeberg.org/pimbay-svc/asset-dedup-video-frame-extract.git
           git fetch codeberg contrib:refs/remotes/codeberg/contrib || true
-          git push codeberg contrib:contrib --force
+          git push codeberg HEAD:contrib --force

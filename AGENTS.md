@@ -13,7 +13,7 @@ License: Unlicense. Runtime: Node.js >= 24.
 
 ```bash
 npm install
-npm run dev               # tsx watch --env-file=.env
+npm run dev               # tsx watch --env-file-if-exists=.env
 npm run js:build          # tsc -p tsconfig.build.json
 npm run js:lint           # eslint src test — check only
 npm run js:lint:fix       # eslint src test --fix
@@ -49,7 +49,7 @@ Requires `ffmpeg`/`ffprobe` on `PATH` (or `FFMPEG_BIN`/`FFPROBE_BIN` pointing at
 - **Config**: env-only, zod-validated before use, grouped into one `Env` value (`infrastructure/env/env.ts`) — business logic depends on `env.FFMPEG_BIN` etc., not on scattered `process.env` reads; no YAML file, no `CONFIG_PATH`.
 - **Logging**: `pino`, structured, no `console.log` — except `presentation/uds/healthcheck.ts` and `server.ts`'s top-level `main().catch(...)`.
   Pretty-print only in dev — a `NODE_ENV` typo enabling it in prod has bitten us before.
-- **Comments** only where non-obvious; always in English.
+- **Comments** only where they explain a non-trivial decision or _why_ — never restate _what_ the code already says. Don't comment obvious lines. Keep to 1-2 lines; more only for genuinely complex logic. Always in English.
 - **Caret-pin to the tested patch** (`^13.0.5`, not `^13.0`).
 - **Markdown**: semantic linebreaks (one sentence/clause per line).
 - **Docs discipline**: no "Project Layout" section in READMEs — the tree speaks for itself.
