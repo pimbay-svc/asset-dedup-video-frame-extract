@@ -13,21 +13,22 @@ Communication is a single persistent Unix-domain-socket connection from `core` (
 
 ## Quick Start (Local)
 
-Requires `ffmpeg` and `ffprobe` on `PATH`:
+```bash
+git clone https://codeberg.org/pimbay-svc/asset-dedup-video-frame-extract.git
+cd asset-dedup-video-frame-extract
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Requires `ffmpeg`/`ffprobe` on `PATH` (or `FFMPEG_BIN`/`FFPROBE_BIN` pointing at them):
 
 ```bash
 # Debian/Ubuntu
 sudo apt-get install ffmpeg
 ```
 
-```bash
-npm install
-cp .env.example .env
-# edit .env — SOCKET_PATH and SHARED_VOLUME_DIR must point at paths this process can actually read/write
-# (a volume shared with asset-dedup-core in production, any local directory for standalone dev)
-
-npm run dev
-```
+`SOCKET_PATH` and `SHARED_VOLUME_DIR` must point at paths this process can actually read/write — a volume shared with `asset-dedup-core` in production, any local directory for standalone dev.
 
 ## Quick Start (Docker)
 
@@ -37,6 +38,51 @@ docker compose up --build
 
 Builds the image (Node runtime + `ffmpeg` in the same container, see `docker/Dockerfile`) and mounts two named volumes shared with `asset-dedup-core`: one for the socket file, one for source videos/extracted frames.
 No TCP port is published — the only interface this service has is the socket file on the shared volume.
+
+Published images (built from the same tag, pushed to both registries on release — see `.github/workflows/release.yml`):
+
+```bash
+docker pull pimbay/asset-dedup-video-frame-extract:latest
+docker pull ghcr.io/pimbay-svc/asset-dedup-video-frame-extract:latest
+```
+
+## Usage
+
+The smallest useful thing this service does: extract the default 5 frames (`uniform` sampling) from one video already sitting on the shared volume.
+`scripts/dev/extract.sh` sends an `extract` op directly to a running instance — no full `core` client setup needed.
+
+```bash
+scripts/dev/extract.sh --video /shared/clip.mp4
+```
+
+```text
+extract op -> ./var/dev/video-frame-extract.sock  (path: /shared/clip.mp4, frame_count: 5, sampling_strategy: uniform)
+{
+  "outputs": {
+    "id1": {
+      "paths": [
+        "/shared/video-frame-extract/a1b2c3d4-0.png",
+        "/shared/video-frame-extract/a1b2c3d4-1.png",
+        "/shared/video-frame-extract/a1b2c3d4-2.png",
+        "/shared/video-frame-extract/a1b2c3d4-3.png",
+        "/shared/video-frame-extract/a1b2c3d4-4.png"
+      ]
+    }
+  }
+}
+```
+
+`--frame-count`, `--sampling-strategy` (`uniform`/`scene-change-detection`), and `--socket-path` are all optional:
+
+```bash
+scripts/dev/extract.sh --video /shared/clip.mp4
+scripts/dev/extract.sh --video /shared/clip.mp4 --frame-count 8
+scripts/dev/extract.sh --video /shared/clip.mp4 --frame-count 8 --sampling-strategy scene-change-detection
+scripts/dev/extract.sh --socket-path /sockets/video-frame-extract.sock --video /shared/clip.mp4 --frame-count 8 --sampling-strategy uniform
+```
+
+The video path must already be readable by the running instance — a path on the shared volume, not your host machine; only the path is sent, never file bytes.
+Not HTTP, so there's no `curl` equivalent — full request/response shapes, error codes, and batch requests: **[docs/api.md](docs/api.md)**.
 
 ## Configuration
 
@@ -80,15 +126,6 @@ npm run js:format     # check
 npm run js:format:fix # fix
 npm run js:typecheck  # tsc --noEmit
 ```
-
-```bash
-scripts/dev/extract.sh --video /shared/clip.mp4
-scripts/dev/extract.sh --video /shared/clip.mp4 --frame-count 8
-scripts/dev/extract.sh --video /shared/clip.mp4 --frame-count 8 --sampling-strategy scene-change-detection
-scripts/dev/extract.sh --socket-path /sockets/video-frame-extract.sock --video /shared/clip.mp4 --frame-count 8 --sampling-strategy uniform
-```
-
-Sends an `extract` op directly to a running instance over the socket — `VIDEO_PATH` must already be readable by this process (a path on the shared volume, not your host machine); only the path is sent, never file bytes.
 
 ## Architecture & Decisions
 
