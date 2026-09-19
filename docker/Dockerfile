@@ -20,6 +20,11 @@ RUN npm run js:build
 FROM node:24-slim
 WORKDIR /app
 
+# ARGs re-declared here — Dockerfile ARG scope ends at the stage that follows a FROM,
+# so a value passed at build time only reaches instructions in this stage if repeated.
+ARG VERSION=0.0.0-dev
+ARG REVISION=unknown
+
 # ffmpeg package provides both `ffmpeg` and `ffprobe`.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg gosu \
@@ -29,9 +34,15 @@ RUN apt-get update \
 COPY --from=deps --chown=appuser:appuser /app/node_modules ./node_modules
 COPY --from=build --chown=appuser:appuser /app/dist ./dist
 COPY --chown=appuser:appuser package.json ./
+COPY --chown=appuser:appuser VERSION ./
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+LABEL org.opencontainers.image.title="asset-dedup-video-frame-extract" \
+      org.opencontainers.image.version=$VERSION \
+      org.opencontainers.image.revision=$REVISION \
+      org.opencontainers.image.source="https://codeberg.org/pimbay-svc/asset-dedup-video-frame-extract"
 
 ENV NODE_ENV=production
 ENV FFMPEG_BIN=ffmpeg
